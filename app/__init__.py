@@ -13,6 +13,15 @@ def create_app():
     load_dotenv()
 
     app = Flask(__name__)
+    
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = False
+    
+    if not app.config["SECRET_KEY"]:
+        raise RuntimeError("SECRET_KEY is missing from environment variables.")
 
     database_url = URL.create(
         drivername="postgresql+psycopg",
@@ -35,6 +44,11 @@ def create_app():
     migrate.init_app(app, db)
 
     from app.routes import main
-    app.register_blueprint(main)
+    from app.auth.routes import auth
+    from app.rbac_test_routes import rbac_test
 
+    app.register_blueprint(main)
+    app.register_blueprint(auth)
+    app.register_blueprint(rbac_test)
+    
     return app
