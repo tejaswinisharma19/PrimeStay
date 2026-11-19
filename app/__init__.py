@@ -5,7 +5,7 @@ from flask import Flask
 from dotenv import load_dotenv
 from sqlalchemy import URL
 
-from app.extensions import db
+from app.extensions import db, migrate
 
 
 def create_app():
@@ -27,6 +27,12 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
+
+    # Import models so SQLAlchemy can detect their tables.
+    from app import models
+
+    # Connect Flask-Migrate to Flask and SQLAlchemy.
+    migrate.init_app(app, db)
 
     from app.routes import main
     app.register_blueprint(main)
