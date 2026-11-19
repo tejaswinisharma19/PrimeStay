@@ -8,21 +8,27 @@ from sqlalchemy import URL
 from app.extensions import db, migrate
 
 
-def create_app():
+def create_app(test_config=None):
 
+    # Load environment variables from the .env file.
     load_dotenv()
 
+    # Create the Flask application.
     app = Flask(__name__)
-    
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
+    # Configure application security.
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = False
-    
-    if not app.config["SECRET_KEY"]:
-        raise RuntimeError("SECRET_KEY is missing from environment variables.")
 
+    # Ensure that the secret key is configured.
+    if not app.config["SECRET_KEY"]:
+        raise RuntimeError(
+            "SECRET_KEY is missing from environment variables."
+        )
+
+    # Create the PostgreSQL database connection URL.
     database_url = URL.create(
         drivername="postgresql+psycopg",
         username=os.getenv("POSTGRES_USER"),
@@ -32,23 +38,34 @@ def create_app():
         database=os.getenv("POSTGRES_DB")
     )
 
+    # Configure SQLAlchemy.
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # Apply custom configuration before initializing extensions.
+    if test_config:
+        app.config.update(test_config)
+
+    # Initialize Flask-SQLAlchemy with the application.
     db.init_app(app)
 
-    # Import models so SQLAlchemy can detect their tables.
+    # Import models so SQLAlchemy can detect all database tables.
     from app import models
 
-    # Connect Flask-Migrate to Flask and SQLAlchemy.
+    # Initialize Flask-Migrate.
     migrate.init_app(app, db)
 
+    # Import application routes.
     from app.routes import main
     from app.auth.routes import auth
-    from app.rbac_test_routes import rbac_test
 
+    # Register application blueprints.
     app.register_blueprint(main)
     app.register_blueprint(auth)
-    app.register_blueprint(rbac_test)
-    
+
+    # Register temporary RBAC routes only during automated testing.
+    if app.config.get("TESTING"):
+        from app.rbac_test_routes import rbac_test
+        app.register_blueprint(rbac_test)
+
     return app
