@@ -10,7 +10,7 @@ from app.extensions import db, migrate
 
 def create_app(test_config=None):
 
-    # Load environment variables from the .env file.
+    # Load environment variables.
     load_dotenv()
 
     # Create the Flask application.
@@ -22,13 +22,13 @@ def create_app(test_config=None):
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = False
 
-    # Ensure that the secret key is configured.
+    # Ensure the secret key exists.
     if not app.config["SECRET_KEY"]:
         raise RuntimeError(
             "SECRET_KEY is missing from environment variables."
         )
 
-    # Create the PostgreSQL database connection URL.
+    # Create PostgreSQL connection URL.
     database_url = URL.create(
         drivername="postgresql+psycopg",
         username=os.getenv("POSTGRES_USER"),
@@ -42,28 +42,30 @@ def create_app(test_config=None):
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Apply custom configuration before initializing extensions.
+    # Apply custom configuration.
     if test_config:
         app.config.update(test_config)
 
-    # Initialize Flask-SQLAlchemy with the application.
+    # Initialize Flask-SQLAlchemy.
     db.init_app(app)
 
-    # Import models so SQLAlchemy can detect all database tables.
+    # Import database models.
     from app import models
 
     # Initialize Flask-Migrate.
     migrate.init_app(app, db)
 
-    # Import application routes.
+    # Import application blueprints.
     from app.routes import main
     from app.auth.routes import auth
+    from app.properties import properties as properties_blueprint
 
     # Register application blueprints.
     app.register_blueprint(main)
     app.register_blueprint(auth)
+    app.register_blueprint(properties_blueprint)
 
-    # Register temporary RBAC routes only during automated testing.
+    # Register temporary RBAC routes only during testing.
     if app.config.get("TESTING"):
         from app.rbac_test_routes import rbac_test
         app.register_blueprint(rbac_test)
