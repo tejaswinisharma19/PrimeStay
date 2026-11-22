@@ -62,6 +62,7 @@ def create_app(test_config=None):
     from app.tenants import tenants as tenants_blueprint
     from app.tenancies import tenancies as tenancies_blueprint
     from app.agreements import agreements as agreements_blueprint
+    from app.rent import rent as rent_blueprint
 
     # Register application blueprints.
     app.register_blueprint(main)
@@ -70,6 +71,7 @@ def create_app(test_config=None):
     app.register_blueprint(tenants_blueprint)
     app.register_blueprint(tenancies_blueprint)
     app.register_blueprint(agreements_blueprint)
+    app.register_blueprint(rent_blueprint)
 
     # Register temporary RBAC routes only during testing.
     if app.config.get("TESTING"):
